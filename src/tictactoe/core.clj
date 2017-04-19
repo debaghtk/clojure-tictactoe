@@ -16,8 +16,26 @@
 ; (let [transposed-board empty-board]
 ; (doseq [x (range 3) y (range 3)]
 ;   (println (show-board transposed-board))
-;    (def transposed-board (mark-square transposed-board x y (get-square board y x))))
-; transposed-board))
+;    (def transposed-board (mark-square transposed-board x y (get-square board y x)))); transposed-board))
+
+(defn has-empty-square?
+  [board]
+  (some #(= " " %) (flatten board)))
+
+(def opponent {"X" "O" "O" "X"})
+
+
+(defn gen-random-board
+  ([]
+   (gen-random-board empty-board (rand-nth (keys opponent))))
+  ([board v]
+   (if-not (has-empty-square? board)
+     board
+     (let [x (rand-int 3)
+           y (rand-int 3)]
+       (if-let [next-board (mark-square board x y v)]
+         (recur next-board (opponent v))
+         (recur board v))))))
 
 (defn transpose-board
   [board]
@@ -36,30 +54,62 @@
   {:pre [(<= 0 x 2) (<= 0 y 2)]}
   (get-in board [x y]))
 
-(defn check-row
-  [board x]
-  (apply = (get board x)))
+(defn check-rows
+  [board v]
+  (some true? (for [i (range 3)] (apply = v (get board i)))))
 
-(defn check-diagonal
-  [board x y]
-  {:pre [(or (= x y) (= 3 (+ x y)))]}
-             (if (= x y)
-               (for [i (range 3)] (apply = (get-in board i i)))
-              (for [i (range 3)] (apply = (get-in board i (- 3 i))))))
+(defn check-cols
+  [board v]
+  (some true?
+        (for [i (range 3)]
+          (apply = v
+                 (for [j (range 3)] (get-in board [j i]))))))
 
-(defn check-result
-  [board x y]
-  (if (or (check-row board x) (check-row (transpose-board board) y) (check-diagonal board x y))
-    (print (str (get-square board x y) " wins"))
-    (print "no winner yet")))
+(defn check-diagonals
+  [board v]
+  (or
+    (apply = v (for [i (range 3)] (get-in board [i i])))
+    (apply = v (for [i (range 3)] (get-in board [i (- 2 i)])))))
+
+(defn winner?
+  [board v]
+  (some true? ((juxt check-rows check-cols check-diagonals) board v)) )
+
+(defn draw?
+  [board]
+  (not  (or  (has-empty-square? board)
+            (winner? board "X")
+            (winner? board "O"))))
 
 (defn mark-square
   [board x y v]
-  {:pre [(<= 0 x 2) (<= 0 y 2) (or (= v "X") (= v "O")(= v " "))
-         (= (get-square board x y) " ")]}
-  (assoc-in board [x y] v))
+  {:pre [(<= 0 x 2) (<= 0 y 2) (or (= v "X") (= v "O")(= v " "))]}
+  (when (= (get-square board x y) " ")
+    (assoc-in board [x y] v)))
 
-(defn board-state [board] nil)
+
+(defn game-over?
+  [board]
+  (or (winner? board "X") (winner? board "O") (not (has-empty-square? board))))
+
+(defn move
+  [board v]
+  (let [x (rand-int 3)
+        y (rand-int 3)]
+    (if-let [next-board (mark-square board x y v)]
+      next-board
+      (recur board v))))
+
+(defn game
+  ([]
+   (game empty-board "X"))
+  ([board v]
+   (println (show-board board))
+   (println " ")
+   (if-not (game-over? board)
+     (recur (move board v) (opponent v))
+     [(winner? board "X") (winner? board "O") (draw? board)])))
+
 
 (defn -main
   "I don't do a whole lot ... yet."
