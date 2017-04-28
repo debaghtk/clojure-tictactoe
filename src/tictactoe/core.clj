@@ -1,41 +1,13 @@
 (ns tictactoe.core
   (:gen-class))
-;marking an square
-;find the value of the square
 
-;Data Structure options
-;map of tuple to string
-;vector of vectors
-
-; Four states
-; 
 (def empty-board [[" " " " " "] [" " " " " "] [" " " " " "]])
-
-;(defn transpose-board
-; [board]
-; (let [transposed-board empty-board]
-; (doseq [x (range 3) y (range 3)]
-;   (println (show-board transposed-board))
-;    (def transposed-board (mark-square transposed-board x y (get-square board y x)))); transposed-board))
 
 (defn has-empty-square?
   [board]
   (some #(= " " %) (flatten board)))
 
 (def opponent {"X" "O" "O" "X"})
-
-
-(defn gen-random-board
-  ([]
-   (gen-random-board empty-board (rand-nth (keys opponent))))
-  ([board v]
-   (if-not (has-empty-square? board)
-     board
-     (let [x (rand-int 3)
-           y (rand-int 3)]
-       (if-let [next-board (mark-square board x y v)]
-         (recur next-board (opponent v))
-         (recur board v))))))
 
 (defn transpose-board
   [board]
@@ -77,20 +49,24 @@
 
 (defn draw?
   [board]
-  (not  (or  (has-empty-square? board)
-            (winner? board "X")
-            (winner? board "O"))))
+  (not
+    (or (has-empty-square? board)
+        (winner? board "X")
+        (winner? board "O"))))
 
 (defn mark-square
   [board x y v]
-  {:pre [(<= 0 x 2) (<= 0 y 2) (or (= v "X") (= v "O")(= v " "))]}
+  {:pre [(<= 0 x 2)
+         (<= 0 y 2)
+         (or (= v "X") (= v "O")(= v " "))]}
   (when (= (get-square board x y) " ")
     (assoc-in board [x y] v)))
 
-
 (defn game-over?
   [board]
-  (or (winner? board "X") (winner? board "O") (not (has-empty-square? board))))
+  (or (winner? board "X")
+      (winner? board "O")
+      (not (has-empty-square? board))))
 
 (defn move
   [board v]
@@ -99,6 +75,18 @@
     (if-let [next-board (mark-square board x y v)]
       next-board
       (recur board v))))
+
+(defn gen-random-board
+  ([]
+   (gen-random-board empty-board (rand-nth (keys opponent))))
+  ([board v]
+   (if-not (has-empty-square? board)
+     board
+     (let [x (rand-int 3)
+           y (rand-int 3)]
+       (if-let [next-board (mark-square board x y v)]
+         (recur next-board (opponent v))
+         (recur board v))))))
 
 (defn game
   ([]
