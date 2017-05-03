@@ -19,7 +19,7 @@
 
 (defn show-board
   [board]
-  (clojure.string/join "\n" (for [row board] (show-row row))) )
+  (clojure.string/join "\n" (for [row board] (show-row row))))
 
 (defn get-square
   [board x y]
@@ -28,7 +28,8 @@
 
 (defn check-rows
   [board v]
-  (some true? (for [i (range 3)] (apply = v (get board i)))))
+  (some true?
+        (for [i (range 3)] (apply = v (get board i)))))
 
 (defn check-cols
   [board v]
@@ -40,25 +41,25 @@
 (defn check-diagonals
   [board v]
   (or
-    (apply = v (for [i (range 3)] (get-in board [i i])))
-    (apply = v (for [i (range 3)] (get-in board [i (- 2 i)])))))
+   (apply = v (for [i (range 3)] (get-in board [i i])))
+   (apply = v (for [i (range 3)] (get-in board [i (- 2 i)])))))
 
 (defn winner?
   [board v]
-  (some true? ((juxt check-rows check-cols check-diagonals) board v)) )
+  (some true? ((juxt check-rows check-cols check-diagonals) board v)))
 
 (defn draw?
   [board]
   (not
-    (or (has-empty-square? board)
-        (winner? board "X")
-        (winner? board "O"))))
+   (or (has-empty-square? board)
+       (winner? board "X")
+       (winner? board "O"))))
 
 (defn mark-square
   [board x y v]
   {:pre [(<= 0 x 2)
          (<= 0 y 2)
-         (or (= v "X") (= v "O")(= v " "))]}
+         (or (= v "X") (= v "O") (= v " "))]}
   (when (= (get-square board x y) " ")
     (assoc-in board [x y] v)))
 
@@ -67,6 +68,41 @@
   (or (winner? board "X")
       (winner? board "O")
       (not (has-empty-square? board))))
+
+(defn number-of-empty-squares
+  [board]
+  (apply + (for [i (range 3)] ((frequencies (get board i)) " " 0))))
+
+(defn whose-move?
+  [board]
+  (if (odd? (number-of-empty-squares board))
+    "X"
+    "O"))
+
+(defn next-boards
+  [board v]
+  (when-not (game-over? board)
+    (remove nil?
+            (for [i (range 3) j (range 3)]
+              (mark-square board i j v)))))
+
+(defn game-tree
+  [board v]
+  {:board board :next (map #(game-tree % (opponent v)) (next-boards board v))})
+
+(defn winning-path
+  ([board v]
+   (winning-path board v [board]))
+  ([board v acc]
+   (if (or (winner? board v) (draw? board))
+     acc
+     (let [gt (game-tree board v)
+           possible-moves (filter #(not (winner? (:board %)  (opponent v))) (:next gt))]
+       (first  (for [next-move possible-moves
+                     :let [next-acc (conj acc next-move)
+                           actual-acc (winning-path next-move v next-acc)]
+                     :when (not= actual-acc next-acc)]
+                 actual-acc))))))
 
 (defn move
   [board v]
@@ -78,7 +114,7 @@
 
 (defn gen-random-board
   ([]
-   (gen-random-board empty-board (rand-nth (keys opponent))))
+   (gen-random-board empty-board "X"))
   ([board v]
    (if-not (has-empty-square? board)
      board
@@ -98,10 +134,7 @@
      (recur (move board v) (opponent v))
      [(winner? board "X") (winner? board "O") (draw? board)])))
 
-
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (println "Hello, World!"))
-
-
