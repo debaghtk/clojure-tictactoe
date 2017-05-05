@@ -55,6 +55,48 @@
        (winner? board "X")
        (winner? board "O"))))
 
+(defn evaluate
+  [board v]
+  (cond
+    (winner? board v) (+ 10 (number-of-empty-squares board))
+    (winner? board (opponent v)) (* -1 (+ 10 (number-of-empty-squares board)))
+    (draw? board) 0
+    :else nil))
+
+(defn maximize
+  [board v]
+  (if (evaluate board v)
+    (evaluate board v)
+    (let [child-boards (next-boards board (opponent v))
+          possible-scores (map #(* -1 (maximize % (opponent v))) child-boards)]
+      (apply min possible-scores))))
+
+(defn possible-scores
+  [board v]
+  (for [i (range 3) j (range 3)]
+    (if-not (mark-square board i j v)
+      nil
+      (maximize (mark-square board i j v) v))))
+
+(defn best-move
+  [board v]
+  (let [all-possible-scores (possible-scores board v)
+        max-score (apply max (remove nil? all-possible-scores))
+        min-score (apply min (remove nil? all-possible-scores))
+        score (cond (< max-score (* -1 min-score)) max-score
+                    :else max-score)
+        index (.indexOf all-possible-scores score)]
+    (cond
+      (= index 0) [0 0]
+      (= index 1) [0 1]
+      (= index 2) [0 2]
+      (= index 3) [1 0]
+      (= index 4) [1 1]
+      (= index 5) [1 2]
+      (= index 6) [2 0]
+      (= index 7) [2 1]
+      (= index 8) [2 2])))
+
 (defn mark-square
   [board x y v]
   {:pre [(<= 0 x 2)
