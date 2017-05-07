@@ -55,6 +55,10 @@
        (winner? board "X")
        (winner? board "O"))))
 
+(declare number-of-empty-squares)
+(declare next-boards)
+(declare mark-square)
+
 (defn evaluate
   [board v]
   (cond
